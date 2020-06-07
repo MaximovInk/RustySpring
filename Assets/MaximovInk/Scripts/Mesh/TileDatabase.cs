@@ -11,6 +11,11 @@ namespace MaximovInk
 
         public static void RegisterBlock(BlockTile blockTile, bool replace = false)
         {
+            if (blockTile == null)
+            {
+                throw new System.Exception("Cannot register block , because its null");
+            }
+
             if (blocks.ContainsKey(blockTile.Name))
             {
                 if (!replace)
@@ -30,6 +35,11 @@ namespace MaximovInk
 
         public static void RegisterObject(ObjectTile objectTile, bool replace = false)
         {
+            if (objectTile == null)
+            {
+                throw new System.Exception("Cannot register object , because its null");
+            }
+
             if (objects.ContainsKey(objectTile.Name))
             {
                 if (!replace)
@@ -62,11 +72,22 @@ namespace MaximovInk
             return objects[name];
         }
 
-        static TileDatabase()
+        private static void RegisterDefaultBlocks()
         {
             RegisterBlock(new BlockTile() { UV = new Vector4(0, 0, 1, 1), Name = "wood", MaterialName = "wood", TillingFactor = Vector2.one });
             RegisterBlock(new BlockTile() { UV = new Vector4(0, 0, 1, 1), Name = "metal", MaterialName = "metal", TillingFactor = Vector2.one });
             RegisterBlock(new BlockTile() { UV = new Vector4(0, 0, 1, 1), Name = "metal_old", MaterialName = "metal_old", TillingFactor = Vector2.one });
+        }
+
+        private static void RegisterDefaultObjects()
+        {
+            RegisterObject(new ObjectTile() { GetGameObject = () => Resources.Load<GameObject>("Prefabs/axle"), Name = "axle" });
+        }
+
+        static TileDatabase()
+        {
+            RegisterDefaultBlocks();
+            RegisterDefaultObjects();
         }
     }
 }

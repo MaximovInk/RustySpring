@@ -13,48 +13,6 @@ namespace MaximovInk
         void Update();
     }
 
-    /*
-    public class HammerTool : ITool
-    {
-        public HammerTool(float force)
-        {
-            this.force = force;
-        }
-
-        private Player player;
-
-        private readonly float force;
-
-        public void OnDeselect()
-        {
-        }
-
-        public void OnSelect(Player player)
-        {
-            this.player = player;
-        }
-
-        public void Update()
-        {
-            if (Input.GetMouseButtonDown(0))
-            {
-                var cam = player.Camera;
-                var buildDistance = player.BuildDistance;
-                LayerMask BuildingMask = (1 << LayerMask.NameToLayer("Default")) | (1 << LayerMask.NameToLayer("Ground"));
-
-                if (Physics.Raycast(new Ray(cam.transform.position, cam.transform.forward), out RaycastHit hit, buildDistance, BuildingMask))
-                {
-                    var rb = hit.collider.GetComponentInParent<Rigidbody>();
-                    if (rb != null)
-                    {
-                        rb.AddForceAtPosition(((player.transform.forward * 0.8f) + player.transform.up) * force, hit.point);
-                    }
-                }
-            }
-        }
-    }
-    */
-
     public interface IPlacingObject
     {
         void CreatePreview();
@@ -175,45 +133,6 @@ namespace MaximovInk
 
         private GameObject CreateCube()
         {
-            /*Vector3[] vertices = {
-            new Vector3 (-0.5f, -0.5f, -0.5f),
-            new Vector3 (0.5f, -0.5f, -0.5f),
-            new Vector3 (0.5f, 0.5f, -0.5f),
-            new Vector3 (-0.5f, 0.5f, -0.5f),
-            new Vector3 (-0.5f, 0.5f, 0.5f),
-            new Vector3 (0.5f, 0.5f, 0.5f),
-            new Vector3 (0.5f, -0.5f, 0.5f),
-            new Vector3 (-0.5f, -0.5f, 0.5f),
-        };
-
-            int[] triangles = {
-            0, 2, 1, //face front
-			0, 3, 2,
-            2, 3, 4, //face top
-			2, 4, 5,
-            1, 2, 5, //face right
-			1, 5, 6,
-            0, 7, 4, //face left
-			0, 4, 3,
-            5, 4, 7, //face back
-			5, 7, 6,
-            0, 6, 7, //face bottom
-			0, 1, 6
-        };
-
-            var go = new GameObject();
-
-            Mesh mesh = new Mesh();
-            var meshFilter = go.AddComponent<MeshFilter>();
-            var meshRenderer = go.AddComponent<MeshRenderer>();
-
-            mesh.Clear();
-            mesh.vertices = vertices;
-            mesh.triangles = triangles;
-            mesh.Optimize();
-            mesh.RecalculateNormals();
-            meshFilter.mesh = mesh;*/
-
             var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
 
             Object.Destroy(go.GetComponent<BoxCollider>());
@@ -253,11 +172,11 @@ namespace MaximovInk
 
         public void Update()
         {
-            LayerMask BuildingMask = (1 << LayerMask.NameToLayer("Default")) | (1 << LayerMask.NameToLayer("Ground"));
+            LayerMask BuildingMask = (1 << LayerMask.NameToLayer("Default"));
 
             var cam = player.Camera;
 
-            if (Physics.Raycast(new Ray(cam.transform.position, cam.transform.forward), out RaycastHit hit, BuildingMask))
+            if (Physics.Raycast(new Ray(cam.transform.position, cam.transform.forward), out RaycastHit hit, Mathf.Infinity, BuildingMask))
             {
                 PlacingObject.SetActivePreview(true);
 
@@ -274,6 +193,10 @@ namespace MaximovInk
                     {
                         PlacingObject.ObjectBehaviourOnPlace(objBehaviour, placePoint);
                     }
+                    if (Input.GetMouseButtonDown(1))
+                    {
+                        objBehaviour.RemoveObject();
+                    }
                 }
                 else
                 {
@@ -289,8 +212,8 @@ namespace MaximovInk
                         {
                             ///TODO: REMade
                             var removePoint = hit.point - (hit.normal * BuildingLayer.HalfBlockSize);
-                            building.RemoveObject(building.WorldToGrid(removePoint));
-                            building.RemoveBlock(building.WorldToGrid(removePoint));
+                            building.RemoveObjectAt(building.WorldToGrid(removePoint));
+                            building.RemoveBlockAt(building.WorldToGrid(removePoint));
                         }
                     }
                 }
@@ -301,227 +224,4 @@ namespace MaximovInk
             }
         }
     }
-
-    /*
-    public class LiftTool : ITool
-    {
-        public BlockMesh buildingCopy;
-        public BlockMesh buildingOriginal;
-        public bool IsMovingLift;
-        public BlockMesh LiftBlockMesh;
-        public Transform LiftBottom;
-        public Transform LiftCenter;
-        public Collider[] liftColliders;
-        public float LiftCurrentHeight;
-        public GameObject LiftInstance;
-        private static GameObject lastLift;
-        private static float lastLiftH;
-        public float LiftMaxHeight = 10f;
-        public Transform LiftTop;
-        private BuilderController player;
-
-        public void OnDeselect()
-        {
-            if (IsMovingLift)
-                Object.Destroy(LiftInstance);
-
-            if (IsMovingLift && buildingOriginal == null && buildingCopy != null)
-            {
-                buildingCopy.gameObject.SetLayerRecursively((1 << LayerMask.NameToLayer("Default")) | (1 << LayerMask.NameToLayer("Ground")));
-                buildingCopy.IsKinematic = false;
-                buildingCopy.transform.SetParent(null);
-                buildingCopy.SetPreview(false);
-                buildingCopy = null;
-            }
-
-            lastLift = LiftInstance;
-            lastLiftH = LiftCurrentHeight;
-        }
-
-        public void OnSelect(BuilderController player)
-        {
-            if (lastLift != null)
-            {
-                LiftInstance = lastLift;
-                LiftCurrentHeight = lastLiftH;
-
-                buildingCopy = LiftInstance.GetComponentInChildren<BlockMesh>();
-                InitLift();
-            }
-
-            this.player = player;
-        }
-
-        private void InitLift()
-        {
-            LiftTop = LiftInstance.transform.Find("top");
-            LiftCenter = LiftInstance.transform.Find("center");
-            LiftBottom = LiftInstance.transform.Find("bottom");
-            liftColliders = LiftInstance.GetComponentsInChildren<Collider>();
-        }
-
-        public void Update()
-        {
-            LayerMask BuildingMask = (1 << LayerMask.NameToLayer("Default")) | (1 << LayerMask.NameToLayer("Ground"));
-
-            var cam = player.Camera;
-            var buildDistance = player.BuildDistance;
-
-            if (LiftInstance == null)
-            {
-                var lift = Resources.Load<GameObject>("Prefabs/lift");
-                LiftInstance = Object.Instantiate(lift);
-                LiftInstance.SetLayerRecursively(LayerMask.NameToLayer("IgnoreR&C"));
-                InitLift();
-                LiftCurrentHeight = 0f;
-                IsMovingLift = true;
-            }
-            if (Physics.Raycast(new Ray(cam.transform.position, cam.transform.forward), out RaycastHit hit, buildDistance, BuildingMask))
-            {
-                if (IsMovingLift)
-                    LiftInstance.transform.position = hit.point + (Vector3.up * 0.46f);
-
-                for (int i = 0; i < liftColliders.Length; i++)
-                {
-                    liftColliders[i].isTrigger = IsMovingLift;
-                }
-
-                var building = hit.collider.GetComponentInParent<BlockMesh>();
-
-                if (building?.CanMoveByLift == false)
-                {
-                    building = null;
-                }
-
-                if (IsMovingLift)
-                {
-                    if (building != null)
-                    {
-                        if (buildingCopy == null)
-                        {
-                            buildingOriginal = building;
-
-                            buildingCopy = Object.Instantiate(building);
-                            //buildingCopy.gameObject.SetLayerRecursively(LayerMask.NameToLayer("IgnoreR&C"));
-                            buildingCopy.SetLayer(LayerMask.NameToLayer("IgnoreR&C"));
-                            buildingCopy.CenterAllBlocksAndObject();
-                            buildingCopy.SetPreview(true);
-
-                            buildingCopy.IsKinematic = true;
-                            buildingCopy.Velocity = Vector3.zero;
-                            buildingCopy.AngularVelocity = Vector3.zero;
-
-                            buildingCopy.transform.SetParent(LiftInstance.transform);
-                            buildingCopy.transform.localPosition = new Vector3(0, LiftCurrentHeight + BlockMesh.HalfBlockSize, 0);
-                            buildingCopy.transform.localRotation = Quaternion.identity;
-                        }
-                    }
-                    else if (buildingOriginal != null && buildingCopy != null)
-                    {
-                        Object.Destroy(buildingCopy.gameObject);
-                        buildingOriginal = null;
-                    }
-                }
-
-                if (Input.GetMouseButtonDown(0))
-                {
-                    if (buildingOriginal != null && buildingCopy != null)
-                    {
-                        Object.Destroy(buildingOriginal.gameObject);
-                    }
-                    if (buildingOriginal == null && buildingCopy != null)
-                    {
-                        buildingCopy.SetPreview(false);
-                        buildingCopy.SetIsDirty();
-                        LiftInstance.SetLayerRecursively(LayerMask.NameToLayer("Default"));
-                        buildingCopy.SetLayer(LayerMask.NameToLayer("Default"));
-                        IsMovingLift = false;
-                    }
-
-                    if (buildingOriginal == null && buildingCopy == null)
-                    {
-                        LiftInstance.SetLayerRecursively(LayerMask.NameToLayer("Default"));
-                        IsMovingLift = false;
-                    }
-                }
-
-                if (Input.GetMouseButtonDown(1) && LiftInstance != null && hit.collider.transform.root.gameObject == LiftInstance)
-                {
-                    if (buildingCopy != null)
-                    {
-                        //buildingCopy.gameObject.SetLayerRecursively(LayerMask.NameToLayer("Default"));
-                        buildingCopy.SetLayer(LayerMask.NameToLayer("Default"));
-                        buildingCopy.IsKinematic = false;
-                        buildingCopy.transform.SetParent(null);
-                        buildingCopy.SetPreview(false);
-                        buildingCopy = null;
-                    }
-
-                    Object.Destroy(LiftInstance);
-                }
-            }
-
-            if (!IsMovingLift)
-            {
-                if (Input.GetKey(KeyCode.UpArrow))
-                {
-                    LiftCurrentHeight += Time.deltaTime;
-                    LiftCurrentHeight = Mathf.Min(LiftMaxHeight, LiftCurrentHeight);
-
-                    UpdateLift();
-
-                    if (buildingCopy != null && buildingOriginal == null)
-                        buildingCopy.transform.localPosition = new Vector3(0, LiftCurrentHeight + BlockMesh.HalfBlockSize, 0);
-                }
-
-                if (Input.GetKey(KeyCode.DownArrow))
-                {
-                    LiftCurrentHeight -= Time.deltaTime;
-                    LiftCurrentHeight = Mathf.Max(0, LiftCurrentHeight);
-
-                    UpdateLift();
-
-                    if (buildingCopy != null && buildingOriginal == null)
-                        buildingCopy.transform.localPosition = new Vector3(0, LiftCurrentHeight + BlockMesh.HalfBlockSize, 0); ;
-                }
-
-                if (Input.GetKey(KeyCode.LeftArrow))
-                {
-                    var angle = 50f * Time.deltaTime;
-
-                    LiftTop.transform.eulerAngles += new Vector3(0, angle, 0);
-
-                    if (buildingCopy != null && buildingOriginal == null)
-                    {
-                        buildingCopy.transform.eulerAngles += new Vector3(0, angle, 0);
-                        buildingCopy.transform.localPosition = new Vector3(0, LiftCurrentHeight + BlockMesh.HalfBlockSize, 0);
-                    }
-                }
-
-                if (Input.GetKey(KeyCode.RightArrow))
-                {
-                    var angle = 50f * Time.deltaTime;
-
-                    LiftTop.transform.eulerAngles -= new Vector3(0, angle, 0);
-
-                    if (buildingCopy != null && buildingOriginal == null)
-                    {
-                        buildingCopy.transform.eulerAngles -= new Vector3(0, angle, 0);
-                        buildingCopy.transform.localPosition = new Vector3(0, LiftCurrentHeight + BlockMesh.HalfBlockSize, 0); ;
-                    }
-                }
-            }
-        }
-
-        private void UpdateLift()
-        {
-            LiftTop.localPosition = new Vector3(0, LiftCurrentHeight, 0);
-
-            LiftCenter.localPosition = (LiftTop.localPosition + LiftBottom.localPosition) / 2f;
-
-            var centerScale = LiftTop.localPosition.y - LiftBottom.localPosition.y;
-
-            LiftCenter.localScale = new Vector3(LiftCenter.localScale.x, centerScale * 2.2f, LiftCenter.localScale.z);
-        }
-    }*/
 }

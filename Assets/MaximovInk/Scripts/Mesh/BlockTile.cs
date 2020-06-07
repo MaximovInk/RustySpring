@@ -1,12 +1,23 @@
-﻿using System;
+﻿using MessagePack;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using UnityEngine;
 
 namespace MaximovInk
 {
+    [MessagePackObject]
+    public class BlockTileData
+    {
+        [Key(0)]
+        public string Name { get; set; }
+
+        [Key(1)]
+        public Vector3Int Position { get; set; }
+
+        [Key(2)]
+        public Dictionary<string, object> parameters { get; set; }
+            = new Dictionary<string, object>();
+    }
+
     public struct BlockTile
     {
         public string Name;

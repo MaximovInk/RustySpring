@@ -27,10 +27,10 @@ namespace MaximovInk
 
         private void UpdateLayerStates()
         {
-            print(layers.Count + " " + isFreeze);
             for (int i = 0; i < layers.Count; i++)
             {
                 layers[i].FreezeAll = isFreeze;
+                // layers[i].transform.localPosition = Vector3.zero;
             }
         }
 
@@ -44,11 +44,11 @@ namespace MaximovInk
 
             if (Input.GetKeyDown(KeyCode.F1))
             {
-                SaveToJson();
+                SaveData();
             }
             if (Input.GetKeyDown(KeyCode.F2))
             {
-                LoadFromJson();
+                LoadData();
             }
         }
 
@@ -67,6 +67,7 @@ namespace MaximovInk
             newLayer.transform.SetParent(transform);
             newLayer.transform.localPosition = Vector3.zero;
             newLayer.transform.localRotation = Quaternion.identity;
+            newLayer.Building = this;
 
             layers.Add(newLayer);
 
@@ -75,15 +76,20 @@ namespace MaximovInk
             return newLayer;
         }
 
-        public void SaveToJson()
+        public void SaveData()
         {
+            for (int i = 0; i < layers.Count; i++)
+            {
+                layers[i].OnSerialize();
+            }
+
             var datas = layers.Select(n => n.Data).ToArray();
 
             print(datas.Length);
 
             var bin = MessagePackSerializer.Serialize(datas);
 
-            print(MessagePackSerializer.SerializeToJson(bin));
+            print(MessagePackSerializer.SerializeToJson(datas));
 
             File.WriteAllText(path, MessagePackSerializer.SerializeToJson(bin));
 
@@ -93,7 +99,7 @@ namespace MaximovInk
             }
         }
 
-        public void LoadFromJson()
+        public void LoadData()
         {
             if (!File.Exists(path))
                 return;
@@ -102,35 +108,31 @@ namespace MaximovInk
             {
                 var datas = MessagePackSerializer.Deserialize<BlockMeshData[]>(fs);
 
-                /*for (int i = 0; i < datas.Length; i++)
-                {
-                    print("->" + datas[i].blocks.Count);
-                    for (int j = 0; j < datas.Length; j++)
-                    {
-                        var block = datas[i].blocks[j];
-                        print("->->" + block.Name + " " + block.Position);
-                    }
-                    print("->" + datas[i].objects.Count);
-                }*/
                 DestoryAllLayers();
 
                 //TODO:PARAMETERS
                 for (int i = 0; i < datas.Length; i++)
                 {
                     var layer = AddNewLayer();
+
                     var data = datas[i];
 
                     for (int j = 0; j < data.blocks.Count; j++)
                     {
                         var block = data.blocks[j];
-                        layer.AddBlock(block.Position, TileDatabase.GetBlock(block.Name));
+                        layer.AddBlock(block.Position, TileDatabase.GetBlock(block.Name), block.parameters);
                     }
 
                     for (int j = 0; j < data.objects.Count; j++)
                     {
                         var obj = data.objects[j];
-                        layer.AddObject(TileDatabase.GetObject(obj.Name), obj.Position, obj.Normal);
+                        layer.AddObject(TileDatabase.GetObject(obj.Name), obj.Position, obj.Normal, obj.parameters);
                     }
+                }
+
+                for (int i = 0; i < layers.Count; i++)
+                {
+                    layers[i].OnDeserialize();
                 }
             }
         }

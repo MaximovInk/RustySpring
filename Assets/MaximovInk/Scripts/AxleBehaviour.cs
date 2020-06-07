@@ -1,31 +1,15 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 
 namespace MaximovInk
 {
     public class AxleBehaviour : ObjectBehaviour
     {
-        private BuildingLayer parent;
         private HingeJoint hJoint;
+        private BuildingLayer connectedTo;
 
         private void Awake()
         {
-            parent = GetComponentInParent<BuildingLayer>();
-            if (parent == null)
-            {
-                return;
-            }
-
-            parent.OnSetKinematic += OnSetKinematic;
-        }
-
-        private void OnSetKinematic(bool isKinematic)
-        {
-            if (hJoint == null || hJoint.connectedBody == null)
-                return;
-
-            Debug.Log("set kinmeatic2");
-
-            hJoint.connectedBody.isKinematic = isKinematic;
         }
 
         public override void OnBlockPreview(GameObject BlockPreview)
@@ -44,54 +28,36 @@ namespace MaximovInk
 
         public override void OnBlockPlace(BlockTile tile)
         {
-            /* if (parent == null)
-             {
-                 return;
-             }
+            connectedTo = buildingLayer.Building.AddNewLayer();
 
-             base.OnBlockPlace(tile);
+            connectedTo.AddBlock(data.Position, tile);
 
-             var blockMesh = CreateL();
-             blockMesh.AddBlock(Vector3Int.zero, tile);*/
+            ConfigurateJoint();
+
+            data.AddParam("connectedTo", buildingLayer.Building.layers.IndexOf(connectedTo));
+
+            base.OnBlockPlace(tile);
         }
 
-        public override void OnObjectPlace(ObjectTile objectShape)
+        private void ConfigurateJoint()
         {
-            /*base.OnObjectPlace(objectShape);
-
-            if (objectShape.GetGameObject().GetComponent<AxleBehaviour>() != null)
-                return;
-
-            var blockMesh = CreateL();
-            blockMesh.AddObject(objectShape, Vector3Int.zero, Vector3Int.up);*/
-        }
-
-        /*
-        private BuildingLayer CreateL()
-        {
-            var blockMesh = new GameObject().AddComponent<BuildingLayer>();
-
-            print("create mesh " + parent.name);
-
-            parent.OnSetKinematic += (value) => { blockMesh.IsKinematic = value; Debug.Log("set kinmeatic1"); };
-            parent.OnSetAVelocity += (value) => blockMesh.AngularVelocity = value;
-            parent.OnSetVelocity += (value) => blockMesh.Velocity = value;
-            parent.OnSetPreview += (value) => { blockMesh.SetPreview(value); Debug.Log("set preview"); };
-            parent.OnLayerChange += (value) => { blockMesh.SetLayer(value); Debug.Log("set layer"); };
-
-            blockMesh.transform.position = transform.position + (transform.up * BlockMesh.HalfBlockSize);
-            blockMesh.transform.rotation = transform.rotation;
-
-            hJoint = parent.gameObject.AddComponent<HingeJoint>();
-            blockMesh.ConnectJointToThis(hJoint);
-            blockMesh.IsKinematic = parent.IsKinematic;
-
-            hJoint.anchor = transform.localPosition;
-            hJoint.axis = parent.transform.InverseTransformDirection(transform.TransformDirection(Vector3.up));
+            hJoint = buildingLayer.gameObject.AddComponent<HingeJoint>();
             hJoint.autoConfigureConnectedAnchor = false;
-            hJoint.connectedAnchor = Vector3.one * BlockMesh.HalfBlockSize;
+            connectedTo.ConnectJointToThis(hJoint);
+            hJoint.anchor = transform.localPosition;
+            hJoint.axis = buildingLayer.transform.InverseTransformDirection(transform.TransformDirection(Vector3.up));
+            hJoint.connectedAnchor = Vector3.one * BuildingLayer.HalfBlockSize;
+        }
 
-            return blockMesh;
-        }*/
+        public override void OnDeserialize()
+        {
+            base.OnDeserialize();
+            if (data.parameters?.ContainsKey("connectedTo") == true)
+            {
+                connectedTo = buildingLayer.Building.layers[Convert.ToInt32(data.parameters["connectedTo"])];
+
+                ConfigurateJoint();
+            }
+        }
     }
 }

@@ -2,40 +2,15 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.Serialization;
 using System.Threading;
 using UnityEngine;
 
 namespace MaximovInk
 {
     [MessagePackObject(keyAsPropertyName: true)]
-    public class TileData
-    {
-        public Vector3Int Position { get; set; }
-        public string Name { get; set; }
-
-        public Dictionary<string, object> parameters { get; set; }
-            = new Dictionary<string, object>();
-    }
-
-    [MessagePackObject(keyAsPropertyName: true)]
-    public class ObjectTileData
-    {
-        public string Name { get; set; }
-        public Vector3Int Position { get; set; }
-        public Vector3 Normal { get; set; }
-
-        [IgnoreMember]
-        public GameObject Instance;
-
-        public Dictionary<string, object> parameters
-            = new Dictionary<string, object>();
-    }
-
-    [MessagePackObject(keyAsPropertyName: true)]
     public class BlockMeshData
     {
-        public List<TileData> blocks = new List<TileData>();
+        public List<BlockTileData> blocks = new List<BlockTileData>();
         public List<ObjectTileData> objects = new List<ObjectTileData>();
 
         public bool IsEmpty()
@@ -47,18 +22,37 @@ namespace MaximovInk
     [RequireComponent(typeof(Rigidbody), typeof(MeshRenderer), typeof(MeshFilter))]
     public class BuildingLayer : MonoBehaviour
     {
+        public const float kBlockSize = 0.25f;
+
+        public Building Building { get; set; }
+
         [HideInInspector]
         public BlockMeshData Data = new BlockMeshData();
 
-        private readonly List<BoxCollider> colliders = new List<BoxCollider>();
         private readonly List<Tuple<Vector3, Vector3>> boxes = new List<Tuple<Vector3, Vector3>>();
-        private readonly List<string> materialSubMeshes = new List<string>();
+        private readonly List<BoxCollider> colliders = new List<BoxCollider>();
+        private readonly List<BlockTileData> connected = new List<BlockTileData>();
         private readonly List<BlockMeshData> dataToSplit = new List<BlockMeshData>();
-
+        private readonly object locker = new object();
+        private readonly List<string> materialSubMeshes = new List<string>();
+        private bool applyColliders;
+        private bool applyMesh;
+        private bool isDirty;
         private MeshData meshData;
 
-        private MeshRenderer meshRenderer;
         private MeshFilter meshFilter;
+        private MeshRenderer meshRenderer;
+        private bool needSplit;
+
+        public event Action<LayerMask> OnLayerChange;
+
+        public event Action<Vector3> OnSetAVelocity;
+
+        public event Action<bool> OnSetKinematic;
+
+        public event Action<Vector3> OnSetVelocity;
+
+        public static float HalfBlockSize => kBlockSize / 2f;
 
         public bool FreezeAll
         {
@@ -70,238 +64,40 @@ namespace MaximovInk
 
         private Rigidbody Rigidbody { get; set; }
 
-        public const float kBlockSize = 0.25f;
-
-        public event Action<bool> OnSetKinematic;
-
-        public event Action<Vector3> OnSetVelocity;
-
-        public event Action<Vector3> OnSetAVelocity;
-
-        public event Action<LayerMask> OnLayerChange;
-
-        private bool isDirty;
-        private bool applyMesh;
-        private bool applyColliders;
-        private bool needSplit;
-
-        private void Awake()
-        {
-            meshRenderer = GetComponent<MeshRenderer>();
-            meshFilter = GetComponent<MeshFilter>();
-            Rigidbody = GetComponent<Rigidbody>();
-        }
-
-        private void Start()
-        {
-            InitMesh();
-
-            isDirty = true;
-        }
-
-        private readonly object locker = new object();
-
-        private void Update()
-        {
-            if (needSplit)
-            {
-                lock (locker)
-                {
-                    needSplit = false;
-                    // Debug.Log("split layers");
-                    SplitLayers();
-                    isDirty = true;
-                }
-            }
-
-            if (isDirty)
-            {
-                isDirty = false;
-
-                if (IsEmpty())
-                {
-                    Destroy(gameObject);
-                    return;
-                }
-
-                //Debug.Log("calc sub mesh ids");
-                CalculateSubMeshIDs();
-
-                //Debug.Log("start generate");
-                new Thread(Generate).Start();
-            }
-
-            if (applyMesh)
-            {
-                applyMesh = false;
-
-                //Debug.Log("apply mesh");
-                ApplyMesh();
-            }
-
-            if (applyColliders)
-            {
-                applyColliders = false;
-
-                //Debug.Log("apply colliders");
-                ApplyColliders();
-            }
-        }
-
-        private void Generate()
-        {
-            lock (locker)
-            {
-                // Debug.Log("pack split data");
-                if (PackSplitData())
-                    return;
-
-                // Debug.Log("clear mesh");
-                ClearMesh();
-
-                // Debug.Log("generate block mesh");
-                GenerateBlockMesh();
-
-                // Debug.Log("generate collider");
-                GenerateColliderData();
-            }
-        }
-
-        public void ClearAll()
-        {
-            for (int i = 0; i < Data.objects.Count; i++)
-            {
-                Destroy(Data.objects[i].Instance);
-            }
-            Data.objects.Clear();
-            Data.blocks.Clear();
-            isDirty = true;
-        }
-
-        public void ConnectJointToThis(Joint joint)
-        {
-            joint.connectedBody = Rigidbody;
-        }
-
-        public void SetLayer(LayerMask layer)
-        {
-            print(LayerMask.LayerToName(layer));
-            gameObject.SetLayerRecursively(layer.value);
-
-            OnLayerChange?.Invoke(layer);
-        }
-
-        public void SetIsDirty()
-        {
-            isDirty = true;
-        }
-
-        public void InitMesh()
-        {
-            meshData = new MeshData();
-            meshFilter.mesh = meshData.GetMesh();
-        }
-
-        public void AddObject(ObjectTile objectTile, Vector3Int position, Vector3 normal)
-        {
-            lock (locker)
-            {
-                /*
-                for (int i = 0; i < shape.Positions.Length; i++)
-                {
-                    if (shape.Positions.Any(n => n == (Position + shape.Positions[i])))
-                    {
-                        return;
-                    }
-                }
-                */
-
-                var prefab = objectTile.GetGameObject();
-                var instance = Instantiate(prefab, transform);
-                instance.transform.localPosition = GridToLocal(position);
-                instance.transform.up = normal;
-
-                Data.objects.Add(new ObjectTileData() { Position = position, Name = objectTile.Name, Normal = normal });
-
-                isDirty = true;
-            }
-        }
-
-        public void RemoveObject(Vector3Int atPosition)
-        {
-            /*lock (locker)
-            {
-                for (int i = 0; i < Data.objects.Count; i++)
-                {
-                    for (int j = 0; j < Data.objects[i].Tile.Positions.Length; j++)
-                    {
-                        if (Data.objects[i].Tile.Positions[j] + Data.objects[i].Position == atPosition)
-                        {
-                            Destroy(Data.objects[i].Instance);
-                            Data.objects.RemoveAt(i);
-                            return;
-                        }
-                    }
-                }
-                isDirty = true;
-            }*/
-        }
-
-        public void RemoveBlock(Vector3Int position)
-        {
-            lock (locker)
-            {
-                var block = Data.blocks.Find(n => n.Position == position);
-
-                if (block == null)
-                    return;
-
-                Data.blocks.Remove(block);
-                isDirty = true;
-            }
-        }
-
-        public void AddBlock(Vector3Int position, BlockTile blockTile)
+        public void AddBlock(Vector3Int position, BlockTile blockTile, Dictionary<string, object> parameters = null)
         {
             lock (locker)
             {
                 if (Data.blocks.Any(n => n.Position == position))
                     return;
 
-                Data.blocks.Add(new TileData() { Position = position, Name = blockTile.Name });
+                Data.blocks.Add(new BlockTileData() { Position = position, Name = blockTile.Name, parameters = parameters });
                 isDirty = true;
             }
         }
 
-        public TileData GetBlockAt(Vector3Int position)
+        public void AddObject(ObjectTile objectTile, Vector3Int position, Vector3 normal, Dictionary<string, object> parameters = null)
         {
-            return Data.blocks.FirstOrDefault(n => n.Position == position);
+            lock (locker)
+            {
+                var prefab = objectTile.GetGameObject();
+                var instance = Instantiate(prefab, transform);
+                instance.transform.localPosition = GridToLocal(position);
+                instance.transform.up = normal;
+
+                var obj = new ObjectTileData() { Position = position, Name = objectTile.Name, Normal = normal, parameters = parameters };
+
+                Data.objects.Add(obj);
+
+                var behaviour = instance.GetComponent<ObjectBehaviour>();
+
+                behaviour?.OnInstantiate(this, obj);
+
+                isDirty = true;
+            }
         }
 
-        public static float HalfBlockSize => kBlockSize / 2f;
-
-        public Vector3Int WorldToGrid(Vector3 worldPos)
-        {
-            var localPos = transform.InverseTransformPoint(worldPos);
-
-            return LocalToGrid(localPos);
-        }
-
-        public Vector3Int LocalToGrid(Vector3 localPos)
-        {
-            return new Vector3Int(Mathf.FloorToInt(localPos.x / kBlockSize), Mathf.FloorToInt(localPos.y / kBlockSize), Mathf.FloorToInt(localPos.z / kBlockSize));
-        }
-
-        public Vector3 GridToLocal(Vector3Int gridPos)
-        {
-            return ((Vector3)gridPos * kBlockSize) + (Vector3.one * HalfBlockSize);
-        }
-
-        public Vector3 GridToWorld(Vector3Int gridPos)
-        {
-            return transform.TransformPoint(GridToLocal(gridPos));
-        }
-
+        /*
         public void CenterAllBlocksAndObject()
         {
             if (Data.blocks.Count == 0)
@@ -326,51 +122,131 @@ namespace MaximovInk
 
             isDirty = true;
         }
+        */
 
-        private bool IsEmpty()
+        public void ClearAll()
         {
-            lock (locker)
-                return Data.IsEmpty();
+            for (int i = 0; i < Data.objects.Count; i++)
+            {
+                Destroy(Data.objects[i].Instance);
+            }
+            Data.objects.Clear();
+            Data.blocks.Clear();
+            isDirty = true;
         }
 
-        private void CalculateSubMeshIDs()
+        public void ConnectJointToThis(Joint joint)
         {
-            materialSubMeshes.Clear();
+            joint.connectedBody = Rigidbody;
+        }
 
-            var materials = new List<Material>();
+        public BlockTileData GetBlockAt(Vector3Int position)
+        {
+            return Data.blocks.FirstOrDefault(n => n.Position == position);
+        }
 
-            //materials.Clear();
+        public Vector3 GridToLocal(Vector3Int gridPos)
+        {
+            return ((Vector3)gridPos * kBlockSize) + (Vector3.one * HalfBlockSize);
+        }
 
-            for (int i = 0; i < Data.blocks.Count; i++)
+        public Vector3 GridToWorld(Vector3Int gridPos)
+        {
+            return transform.TransformPoint(GridToLocal(gridPos));
+        }
+
+        public void OnSerialize()
+        {
+            var objs = GetComponentsInChildren<ObjectBehaviour>();
+            for (int i = 0; i < objs.Length; i++)
             {
-                var tile = TileDatabase.GetBlock(Data.blocks[i].Name);
+                objs[i].OnSerialize();
+            }
+        }
 
-                var matName = tile.MaterialName;
+        public void OnDeserialize()
+        {
+            var objs = GetComponentsInChildren<ObjectBehaviour>();
+            for (int i = 0; i < objs.Length; i++)
+            {
+                objs[i].OnDeserialize();
+            }
+        }
 
-                if (!materialSubMeshes.Contains(matName))
+        public void InitMesh()
+        {
+            meshData = new MeshData();
+            meshFilter.mesh = meshData.GetMesh();
+        }
+
+        public Vector3Int LocalToGrid(Vector3 localPos)
+        {
+            return new Vector3Int(Mathf.FloorToInt(localPos.x / kBlockSize), Mathf.FloorToInt(localPos.y / kBlockSize), Mathf.FloorToInt(localPos.z / kBlockSize));
+        }
+
+        public void RemoveBlock(BlockTileData block)
+        {
+            lock (locker)
+            {
+                Data.blocks.Remove(block);
+                isDirty = true;
+            }
+        }
+
+        public void RemoveBlockAt(Vector3Int position)
+        {
+            lock (locker)
+            {
+                var block = Data.blocks.Find(n => n.Position == position);
+
+                if (block == null)
+                    return;
+
+                Data.blocks.Remove(block);
+                isDirty = true;
+            }
+        }
+
+        public void RemoveObject(ObjectTileData obj)
+        {
+            lock (locker)
+            {
+                Destroy(obj.Instance);
+                Data.objects.Remove(obj);
+            }
+        }
+
+        public void RemoveObjectAt(Vector3Int position)
+        {
+            lock (locker)
+            {
+                var obj = Data.objects.Find(n => n.Position == position);
+                if (obj != null)
                 {
-                    materialSubMeshes.Add(matName);
-                    materials.Add(MaterialDatabase.GetMaterial(matName));
+                    Destroy(obj.Instance);
+                    Data.objects.Remove(obj);
                 }
             }
-
-            meshRenderer.materials = materials.ToArray();
         }
 
-        private void ClearMesh()
+        public void SetIsDirty()
         {
-            lock (locker)
-            {
-                meshData.Clear();
-            }
+            isDirty = true;
         }
 
-        private void ApplyMesh()
+        public void SetLayer(LayerMask layer)
         {
-            lock (locker)
-            {
-                meshData.ApplyToMesh();
-            }
+            print(LayerMask.LayerToName(layer));
+            gameObject.SetLayerRecursively(layer.value);
+
+            OnLayerChange?.Invoke(layer);
+        }
+
+        public Vector3Int WorldToGrid(Vector3 worldPos)
+        {
+            var localPos = transform.InverseTransformPoint(worldPos);
+
+            return LocalToGrid(localPos);
         }
 
         private void ApplyColliders()
@@ -403,58 +279,44 @@ namespace MaximovInk
             }
         }
 
-        private void SplitLayers()
+        private void ApplyMesh()
         {
-            for (int j = 0; j < dataToSplit.Count; j++)
+            lock (locker)
             {
-                var data = dataToSplit[j];
-
-                //TODO:REPLACE
-
-                /*var building = new GameObject("New mesh").AddComponent<BuildingLayer>();
-                building.Data = data;
-
-                building.transform.position = transform.position;
-                building.transform.rotation = transform.rotation;*/
-
-                //blockMesh.CenterAllBlocksAndObject();
+                meshData.ApplyToMesh();
             }
         }
 
-        private bool PackSplitData()
+        private void Awake()
         {
-            connected.Clear();
-            dataToSplit.Clear();
+            meshRenderer = GetComponent<MeshRenderer>();
+            meshFilter = GetComponent<MeshFilter>();
+            Rigidbody = GetComponent<Rigidbody>();
+        }
 
-            while (Data.blocks.Count > 0)
+        private void CalculateSubMeshIDs()
+        {
+            materialSubMeshes.Clear();
+
+            var materials = new List<Material>();
+
+            //materials.Clear();
+
+            for (int i = 0; i < Data.blocks.Count; i++)
             {
-                CheckConnectedBlock(Data.blocks[0].Position);
+                var tile = TileDatabase.GetBlock(Data.blocks[i].Name);
 
-                if (connected.Count == Data.blocks.Count)
+                var matName = tile.MaterialName;
+
+                if (!materialSubMeshes.Contains(matName))
                 {
-                    break;
-                }
-                else
-                {
-                    // Debug.Log(connected.Count + " why " + Data.blocks.Count);
-                    var newMesh = new BlockMeshData();
-
-                    newMesh.blocks = new List<TileData>(connected);
-
-                    dataToSplit.Add(newMesh);
-
-                    Data.blocks = Data.blocks.Except(connected).ToList();
-
-                    connected.Clear();
+                    materialSubMeshes.Add(matName);
+                    materials.Add(MaterialDatabase.GetMaterial(matName));
                 }
             }
 
-            needSplit = dataToSplit.Count > 0;
-
-            return needSplit;
+            meshRenderer.materials = materials.ToArray();
         }
-
-        private readonly List<TileData> connected = new List<TileData>();
 
         private void CheckConnectedBlock(Vector3Int position)
         {
@@ -475,6 +337,26 @@ namespace MaximovInk
             }
         }
 
+        private void ClearMesh()
+        {
+            lock (locker)
+            {
+                meshData.Clear();
+            }
+        }
+
+        private void Generate()
+        {
+            lock (locker)
+            {
+                if (PackSplitData())
+                    return;
+                ClearMesh();
+                GenerateBlockMesh();
+                GenerateColliderData();
+            }
+        }
+
         private void GenerateBlockMesh()
         {
             applyMesh = false;
@@ -490,25 +372,6 @@ namespace MaximovInk
                 Vector3 vMax = vMin + blockSizeV;
 
                 int id = materialSubMeshes.IndexOf(tile.MaterialName);
-
-                // var value = (Mathf.Abs((position.x / 2) + (position.y / 2) + (position.z / 2)) % 4) / 4f;
-
-                /*var valueX = ((Mathf.Abs(position.x / 2 + position.y / 2 + position.z / 2)) % 4) / 4f;
-                var valueY = ((Mathf.Abs(position.x / 2 + position.y / 2 + position.z / 2)) % 4) / 4f;
-                var valueZ = ((Mathf.Abs(position.x / 2 + position.y / 2 + position.z / 2)) % 4) / 4f;*/
-
-                //Vector4 uv = Data.blocks[i].Tile.UV * value;
-                /*Vector4 uv = Data.blocks[i].Tile.UV;
-
-                var min = new Vector2(uv.x, uv.y);
-                var max = new Vector2(uv.z, uv.w);
-
-                var step = new Vector2(max.x - min.x, max.y - min.y);
-
-                var valBegin = value;
-                var valEnd = value + (1 / 4f);
-
-                uv = new Vector4(min.x ,uv.y,uv.z,uv.w);*/
 
                 var tilingValue = 8f;
 
@@ -548,7 +411,6 @@ namespace MaximovInk
 
                 var uv6 = new Vector4(uv3.z, uv3.y, uv3.x, uv3.w);
 
-                //int id = (Mathf.Abs(position.x / 2 + position.y / 2 + position.z / 2)) % 2 == 0 ? 1 : materialSubMeshes.IndexOf(Data.blocks[i].Tile.MaterialName);
                 if (GetBlockAt(new Vector3Int(position.x, position.y - 1, position.z)) == null)
                 {
                     meshData.AddQuad(
@@ -775,6 +637,107 @@ namespace MaximovInk
             }
 
             applyColliders = true;
+        }
+
+        private bool IsEmpty()
+        {
+            lock (locker)
+                return Data.IsEmpty();
+        }
+
+        private bool PackSplitData()
+        {
+            connected.Clear();
+            dataToSplit.Clear();
+
+            while (Data.blocks.Count > 0)
+            {
+                CheckConnectedBlock(Data.blocks[0].Position);
+
+                if (connected.Count == Data.blocks.Count)
+                {
+                    break;
+                }
+                else
+                {
+                    var newMesh = new BlockMeshData();
+
+                    newMesh.blocks = new List<BlockTileData>(connected);
+
+                    dataToSplit.Add(newMesh);
+
+                    Data.blocks = Data.blocks.Except(connected).ToList();
+
+                    connected.Clear();
+                }
+            }
+
+            needSplit = dataToSplit.Count > 0;
+
+            return needSplit;
+        }
+
+        private void SplitLayers()
+        {
+            for (int j = 0; j < dataToSplit.Count; j++)
+            {
+                var data = dataToSplit[j];
+
+                //TODO:REPLACE
+
+                /*var building = new GameObject("New mesh").AddComponent<BuildingLayer>();
+                building.Data = data;
+
+                building.transform.position = transform.position;
+                building.transform.rotation = transform.rotation;*/
+
+                //blockMesh.CenterAllBlocksAndObject();
+            }
+        }
+
+        private void Start()
+        {
+            InitMesh();
+
+            isDirty = true;
+        }
+
+        private void Update()
+        {
+            if (needSplit)
+            {
+                lock (locker)
+                {
+                    needSplit = false;
+                    SplitLayers();
+                    isDirty = true;
+                }
+            }
+
+            if (isDirty)
+            {
+                isDirty = false;
+
+                if (IsEmpty())
+                {
+                    Destroy(gameObject);
+                    return;
+                }
+                CalculateSubMeshIDs();
+                new Thread(Generate).Start();
+            }
+
+            if (applyMesh)
+            {
+                applyMesh = false;
+                ApplyMesh();
+            }
+
+            if (applyColliders)
+            {
+                applyColliders = false;
+                ApplyColliders();
+            }
         }
     }
 }

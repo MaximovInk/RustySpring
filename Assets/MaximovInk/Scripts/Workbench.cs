@@ -16,6 +16,8 @@ namespace MaximovInk
                 player.Freeze = true;
                 player.Camera.enabled = false;
                 BuilderController.SetActive(true);
+                GameManager.instance.GameUI.SetActive(false);
+                GameManager.instance.EditorUI.SetActive(true);
                 Init();
             }
         }

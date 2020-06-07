@@ -8,7 +8,7 @@ namespace MaximovInk
 
         private Workbench workbench;
 
-        private float movementSpeed = 1.0f;
+        private float movementSpeed = 5f;
 
         private bool active;
 
@@ -20,6 +20,24 @@ namespace MaximovInk
             workbench = GetComponentInParent<Workbench>();
 
             UpdateActive();
+        }
+
+        private void SelectBlock(string name)
+        {
+            CurrentTool?.OnDeselect();
+
+            CurrentTool = new PlacingTool(new BlockPlacing(TileDatabase.GetBlock(name)));
+
+            CurrentTool.OnSelect(this);
+        }
+
+        private void SelectObject(string name)
+        {
+            CurrentTool?.OnDeselect();
+
+            CurrentTool = new PlacingTool(new ObjPlacing(TileDatabase.GetObject(name)));
+
+            CurrentTool.OnSelect(this);
         }
 
         public void SetActive(bool active)
@@ -61,6 +79,21 @@ namespace MaximovInk
                 player.Freeze = false;
                 player.Camera.enabled = true;
                 SetActive(false);
+
+                GameManager.instance.GameUI.SetActive(true);
+                GameManager.instance.EditorUI.SetActive(false);
+            }
+            if (Input.GetKeyDown(KeyCode.Alpha1))
+            {
+                SelectBlock("wood");
+            }
+            if (Input.GetKeyDown(KeyCode.Alpha2))
+            {
+                SelectBlock("metal");
+            }
+            if (Input.GetKeyDown(KeyCode.Alpha3))
+            {
+                SelectObject("axle");
             }
         }
     }

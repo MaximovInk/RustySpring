@@ -20,6 +20,9 @@ namespace MaximovInk
 
         public event Action OnLateUpdate;
 
+        public GameObject GameUI;
+        public GameObject EditorUI;
+
         private void Awake()
         {
             instance = this;
