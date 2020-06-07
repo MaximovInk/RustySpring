@@ -1,0 +1,122 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 6
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Leafs URP
+  m_Shader: {fileID: -6465566751694194690, guid: ee036d6f990045f40bdb88313b4f38de,
+    type: 3}
+  m_ShaderKeywords: 
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 1
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - Texture2D_6E2524DE:
+        m_Texture: {fileID: 2800000, guid: 576148c148cdc7d49ab60c3f93ec78da, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - Texture2D_D2D90A70:
+        m_Texture: {fileID: 2800000, guid: 576148c148cdc7d49ab60c3f93ec78da, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _BaseMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _BumpMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _EmissionMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MainTex:
+        m_Texture: {fileID: 2800000, guid: 576148c148cdc7d49ab60c3f93ec78da, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MetallicGlossMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _OcclusionMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _SpecGlossMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _baseColorMap:
+        m_Texture: {fileID: 2800000, guid: 576148c148cdc7d49ab60c3f93ec78da, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _texcoord:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Floats:
+    - Vector1_122B07: 0.4
+    - Vector1_3D28A45D: 137.5
+    - Vector1_4D527D1A: 1
+    - Vector1_5AAD622A: 17.66
+    - Vector1_6E34B116: 28.93
+    - Vector1_8370EAA8: 0.84
+    - Vector1_86518311: 1.43
+    - Vector1_A35A3186: 2.08
+    - Vector1_CAD2D3A9: 0.47
+    - Vector1_D07B11CF: 0.5
+    - _AlphaClip: 0
+    - _AlphaCutoff: 0.5
+    - _Blend: 0
+    - _BumpScale: 1
+    - _ColorShifting: 1
+    - _ColorSource: 0
+    - _ColorVariation: 0
+    - _Cull: 2
+    - _CullMode: 0
+    - _Cutoff: 0.847
+    - _DoubleSidedNormalMode: 1
+    - _DstBlend: 0
+    - _EnvironmentReflections: 1
+    - _GlobalTurbulenceInfluence: 0.232
+    - _GlobalWindInfluence: 1
+    - _GlossMapScale: 0
+    - _Glossiness: 0
+    - _GlossyReflections: 0
+    - _Hue: -0.5
+    - _Metallic: 0
+    - _OcclusionStrength: 0
+    - _QueueOffset: 0
+    - _ReceiveShadows: 1
+    - _Saturation: 0
+    - _Smoothness: 0.5
+    - _SmoothnessTextureChannel: 0
+    - _SpecularHighlights: 1
+    - _SrcBlend: 1
+    - _Surface: 0
+    - _TransNormalDistortion: 5.75
+    - _TransScale: 0
+    - _TransScattering: 1
+    - _Translucency: 2.5
+    - _TranslucencyEnum: 1
+    - _Value: 0
+    - _WindModeLeaves: 0
+    - _WorkflowMode: 1
+    - _ZWrite: 1
+    m_Colors:
+    - Vector2_1E15630C: {r: 0.97, g: 0, b: 0, a: 0}
+    - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
+    - _Color: {r: 1, g: 1, b: 1, a: 1}
+    - _EmissionColor: {r: 1, g: 1, b: 1, a: 1}
+    - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
+    - _TranslucencyTint: {r: 1, g: 1, b: 1, a: 0}
