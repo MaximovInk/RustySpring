@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 4031289654500613493}
   - component: {fileID: 5379833609651251011}
   - component: {fileID: 1843532735263775674}
-  - component: {fileID: 8253040224237450861}
+  - component: {fileID: 8578639910264034035}
   m_Layer: 0
   m_Name: model
   m_TagString: Untagged
@@ -80,20 +80,19 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
---- !u!64 &8253040224237450861
-MeshCollider:
+--- !u!65 &8578639910264034035
+BoxCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 119729454365912934}
   m_Material: {fileID: 0}
-  m_IsTrigger: 1
+  m_IsTrigger: 0
   m_Enabled: 1
-  serializedVersion: 4
-  m_Convex: 1
-  m_CookingOptions: 30
-  m_Mesh: {fileID: 2534964839176971238, guid: 732b3a897bd0af746811762f42621c14, type: 3}
+  serializedVersion: 2
+  m_Size: {x: 0.25, y: 0.25, z: 0.06}
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &8253040224601538158
 GameObject:
   m_ObjectHideFlags: 0
@@ -105,8 +104,8 @@ GameObject:
   - component: {fileID: 8253040224601538157}
   - component: {fileID: 617072651}
   m_Layer: 0
-  m_Name: bearing
-  m_TagString: Untagged
+  m_Name: axle
+  m_TagString: LayerBridge
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0

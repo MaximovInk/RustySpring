@@ -8,7 +8,7 @@ namespace MaximovInk
 {
     public class Building : MonoBehaviour
     {
-        public List<BuildingLayer> layers = new List<BuildingLayer>();
+        private List<BuildingLayer> layers = new List<BuildingLayer>();
 
         private static string path => Application.dataPath + "/build0.blueprint";
 
@@ -25,12 +25,66 @@ namespace MaximovInk
         private bool isFreeze;
         private bool needUpdateLayerStates;
 
+        public event System.Action<BuildingLayer> OnLayerRemove;
+
+        public event System.Action<BuildingLayer> OnLayerAdd;
+
+        private Material customMaterial;
+
+        public BuildingLayer this[int i] { get { return layers[i]; } }
+
+        public void CombineLayers(BuildingLayer from, BuildingLayer to)
+        {
+            if (to == from)
+                return;
+
+            if (!from.CanCombineWith(to) || !to.CanCombineWith(from))
+                return;
+
+            for (int i = 0; i < from.Data.blocks.Count; i++)
+            {
+                var block = from.Data.blocks[i];
+                to.AddBlock(TileDatabase.GetBlock(block.Name), block.Position, block.parameters);
+            }
+
+            for (int i = 0; i < from.Data.objects.Count; i++)
+            {
+                var obj = from.Data.objects[i];
+                to.AddObject(TileDatabase.GetObject(obj.Name), obj.Position, obj.Normal, obj.parameters);
+            }
+
+            RemoveLayer(from);
+        }
+
+        public int GetIndexOf(BuildingLayer layer)
+        {
+            return layers.IndexOf(layer);
+        }
+
+        public void RemoveLayer(BuildingLayer layer)
+        {
+            Destroy(layer.gameObject);
+            layers.Remove(layer);
+            OnLayerRemove?.Invoke(layer);
+        }
+
+        public void SetCustomMaterial(Material material)
+        {
+            customMaterial = material;
+            needUpdateLayerStates = true;
+        }
+
         private void UpdateLayerStates()
         {
             for (int i = 0; i < layers.Count; i++)
             {
                 layers[i].FreezeAll = isFreeze;
-                // layers[i].transform.localPosition = Vector3.zero;
+
+                var mat = customMaterial != null ? new Material(customMaterial) : null;
+
+                mat?.SetColor("_BaseColor", Random.ColorHSV(0f, 1f, 0.5f, 1f, 0.5f, 1f));
+
+                layers[i].CustomMaterial = mat;
             }
         }
 
@@ -70,6 +124,8 @@ namespace MaximovInk
             newLayer.Building = this;
 
             layers.Add(newLayer);
+
+            OnLayerAdd?.Invoke(newLayer);
 
             needUpdateLayerStates = true;
 
@@ -120,7 +176,7 @@ namespace MaximovInk
                     for (int j = 0; j < data.blocks.Count; j++)
                     {
                         var block = data.blocks[j];
-                        layer.AddBlock(block.Position, TileDatabase.GetBlock(block.Name), block.parameters);
+                        layer.AddBlock(TileDatabase.GetBlock(block.Name), block.Position, block.parameters);
                     }
 
                     for (int j = 0; j < data.objects.Count; j++)

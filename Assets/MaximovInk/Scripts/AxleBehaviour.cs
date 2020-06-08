@@ -5,54 +5,88 @@ namespace MaximovInk
 {
     public class AxleBehaviour : ObjectBehaviour
     {
-        //private HingeJoint hJoint;
         private ConfigurableJoint cJoint;
-
         private BuildingLayer connectedTo;
 
-        private void Awake()
+        public override void OnInstantiate(BuildingLayer buildingLayer, ObjectTileData data)
         {
+            base.OnInstantiate(buildingLayer, data);
+            buildingLayer.Building.OnLayerAdd += (_) => UpdateData();
+            buildingLayer.Building.OnLayerRemove += (_) => UpdateData();
+            buildingLayer.CanCombineCallback += CanCombineCallback;
         }
 
-        public override void OnBlockPreview(GameObject BlockPreview)
+        private void CanCombineCallback(BuildingLayer other, ref bool can)
         {
-            base.OnBlockPreview(BlockPreview);
-            BlockPreview.transform.position = transform.position + (transform.up * BuildingLayer.HalfBlockSize);
-            BlockPreview.transform.rotation = transform.rotation;
+            can &= connectedTo != other;
         }
 
-        public override void OnObjectPreview(GameObject ObjectPreview)
+        private void UpdateData()
         {
-            base.OnObjectPreview(ObjectPreview);
-            ObjectPreview.transform.position = transform.position + (transform.up * BuildingLayer.HalfBlockSize);
-            ObjectPreview.transform.rotation = transform.rotation;
+            if (connectedTo == null)
+            {
+                if (data.parameters?.ContainsKey("connectedTo") == true)
+                {
+                    data.RemoveParam("connectedTo");
+                }
+            }
+            else
+            {
+                data.SetOrAddParam("connectedTo", buildingLayer.Building.GetIndexOf(connectedTo));
+            }
         }
 
-        public override void OnBlockPlace(BlockTile tile)
+        public override void OnBlockPreview(GameObject blockPreview)
         {
+            base.OnBlockPreview(blockPreview);
+            blockPreview.transform.position = transform.position + (transform.up * BuildingLayer.HalfBlockSize);
+            blockPreview.transform.rotation = transform.rotation;
+        }
+
+        public override void OnObjectPreview(GameObject objectPreview)
+        {
+            base.OnObjectPreview(objectPreview);
+
+            if (objectPreview.CompareTag("LayerBridge"))
+                return;
+            objectPreview.transform.position = transform.position + (transform.up * BuildingLayer.HalfBlockSize);
+            objectPreview.transform.rotation = transform.rotation;
+        }
+
+        public override void OnBlockPlace(BlockTile blockTile)
+        {
+            base.OnBlockPlace(blockTile);
+
             connectedTo = buildingLayer.Building.AddNewLayer();
 
-            connectedTo.AddBlock(data.Position, tile);
+            connectedTo.AddBlock(blockTile, data.Position);
 
             ConfigurateJoint();
+        }
 
-            data.AddParam("connectedTo", buildingLayer.Building.layers.IndexOf(connectedTo));
+        public override void OnObjectPlace(ObjectTile objectTile)
+        {
+            base.OnObjectPlace(objectTile);
 
-            base.OnBlockPlace(tile);
+            if (objectTile.GetGameObject().CompareTag("LayerBridge"))
+                return;
+
+            connectedTo = buildingLayer.Building.AddNewLayer();
+
+            connectedTo.AddObject(objectTile, data.Position, transform.up);
+
+            ConfigurateJoint();
         }
 
         private void ConfigurateJoint()
         {
-            //hJoint = buildingLayer.gameObject.AddComponent<HingeJoint>();
+            if (cJoint != null)
+                Destroy(cJoint);
+
             cJoint = buildingLayer.gameObject.AddComponent<ConfigurableJoint>();
-            //hJoint.autoConfigureConnectedAnchor = false;
-            //connectedTo.ConnectJointToThis(hJoint);
             connectedTo.ConnectJointToThis(cJoint);
-            //hJoint.anchor = buildingLayer.GridToLocal(data.Position);
             cJoint.anchor = buildingLayer.GridToLocal(data.Position);
-            //hJoint.axis = buildingLayer.transform.InverseTransformDirection(transform.up);
             cJoint.axis = buildingLayer.transform.InverseTransformDirection(transform.up);
-            // hJoint.connectedAnchor = Vector3.one * BuildingLayer.HalfBlockSize;
             cJoint.angularXMotion = ConfigurableJointMotion.Free;
             cJoint.angularYMotion = ConfigurableJointMotion.Locked;
             cJoint.angularZMotion = ConfigurableJointMotion.Locked;
@@ -67,7 +101,7 @@ namespace MaximovInk
             base.OnDeserialize();
             if (data.parameters?.ContainsKey("connectedTo") == true)
             {
-                connectedTo = buildingLayer.Building.layers[Convert.ToInt32(data.parameters["connectedTo"])];
+                connectedTo = buildingLayer.Building[Convert.ToInt32(data.parameters["connectedTo"])];
 
                 ConfigurateJoint();
             }

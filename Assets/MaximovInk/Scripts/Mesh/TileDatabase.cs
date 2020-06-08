@@ -82,6 +82,7 @@ namespace MaximovInk
         private static void RegisterDefaultObjects()
         {
             RegisterObject(new ObjectTile() { GetGameObject = () => Resources.Load<GameObject>("Prefabs/axle"), Name = "axle" });
+            RegisterObject(new ObjectTile() { GetGameObject = () => Resources.Load<GameObject>("Prefabs/wheel"), Name = "wheel" });
         }
 
         static TileDatabase()

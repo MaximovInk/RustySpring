@@ -18,6 +18,7 @@ namespace MaximovInk
                 BuilderController.SetActive(true);
                 GameManager.instance.GameUI.SetActive(false);
                 GameManager.instance.EditorUI.SetActive(true);
+                EditorManager.instance.CurrentWorkbench = this;
                 Init();
             }
         }
@@ -32,7 +33,7 @@ namespace MaximovInk
             Building.transform.localPosition = new Vector3(0, 1, 0);
             Building.transform.localRotation = Quaternion.identity;
             var layer0 = Building.AddNewLayer();
-            layer0.AddBlock(Vector3Int.zero, TileDatabase.GetBlock("wood"));
+            layer0.AddBlock(TileDatabase.GetBlock("wood"), Vector3Int.zero);
             Building.Freeze = true;
         }
     }

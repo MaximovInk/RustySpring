@@ -17,20 +17,36 @@ namespace MaximovInk
 
         public void AddParam(string key, object data)
         {
-            if (parameters == null)
-            {
-                parameters = new Dictionary<string, object>();
-            }
+            CheckParams();
 
             parameters.Add(key, data);
         }
 
-        public void RemoveParam(string key)
+        public void SetOrAddParam(string key, object data)
+        {
+            CheckParams();
+
+            if (parameters.ContainsKey(key))
+            {
+                parameters[key] = data;
+            }
+            else
+            {
+                AddParam(key, data);
+            }
+        }
+
+        private void CheckParams()
         {
             if (parameters == null)
             {
                 parameters = new Dictionary<string, object>();
             }
+        }
+
+        public void RemoveParam(string key)
+        {
+            CheckParams();
 
             parameters.Remove(key);
         }

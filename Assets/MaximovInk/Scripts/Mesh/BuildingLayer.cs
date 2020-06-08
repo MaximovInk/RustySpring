@@ -22,7 +22,13 @@ namespace MaximovInk
     [RequireComponent(typeof(Rigidbody), typeof(MeshRenderer), typeof(MeshFilter))]
     public class BuildingLayer : MonoBehaviour
     {
+        public delegate void CanCombineDelegate(BuildingLayer other, ref bool can);
+
+        public event CanCombineDelegate CanCombineCallback;
+
         public const float kBlockSize = 0.25f;
+
+        public Material CustomMaterial { get => customMaterial; set { customMaterial = value; isDirty = true; } }
 
         public Building Building { get; set; }
 
@@ -38,6 +44,7 @@ namespace MaximovInk
         private bool applyColliders;
         private bool applyMesh;
         private bool isDirty;
+        private Material customMaterial;
         private MeshData meshData;
 
         private MeshFilter meshFilter;
@@ -52,6 +59,14 @@ namespace MaximovInk
 
         public event Action<Vector3> OnSetVelocity;
 
+        public event Action<Vector3Int> OnBlockPlaced;
+
+        public event Action<Vector3Int> OnBlockRemoved;
+
+        public event Action<Vector3Int> OnObjectPlaced;
+
+        public event Action<Vector3Int> OnObjectRemoved;
+
         public static float HalfBlockSize => kBlockSize / 2f;
 
         public bool FreezeAll
@@ -64,7 +79,7 @@ namespace MaximovInk
 
         private Rigidbody Rigidbody { get; set; }
 
-        public void AddBlock(Vector3Int position, BlockTile blockTile, Dictionary<string, object> parameters = null)
+        public void AddBlock(BlockTile blockTile, Vector3Int position, Dictionary<string, object> parameters = null)
         {
             lock (locker)
             {
@@ -72,6 +87,7 @@ namespace MaximovInk
                     return;
 
                 Data.blocks.Add(new BlockTileData() { Position = position, Name = blockTile.Name, parameters = parameters });
+                OnBlockPlaced?.Invoke(position);
                 isDirty = true;
             }
         }
@@ -84,6 +100,7 @@ namespace MaximovInk
                 var instance = Instantiate(prefab, transform);
                 instance.transform.localPosition = GridToLocal(position);
                 instance.transform.up = normal;
+                instance.SetTagRecursively("ObjectTile");
 
                 var obj = new ObjectTileData() { Position = position, Name = objectTile.Name, Normal = normal, parameters = parameters };
 
@@ -92,6 +109,8 @@ namespace MaximovInk
                 var behaviour = instance.GetComponent<ObjectBehaviour>();
 
                 behaviour?.OnInstantiate(this, obj);
+
+                OnObjectPlaced?.Invoke(position);
 
                 isDirty = true;
             }
@@ -123,6 +142,15 @@ namespace MaximovInk
             isDirty = true;
         }
         */
+
+        public bool CanCombineWith(BuildingLayer other)
+        {
+            bool can = true;
+
+            CanCombineCallback?.Invoke(other, ref can);
+
+            return can;
+        }
 
         public void ClearAll()
         {
@@ -189,6 +217,7 @@ namespace MaximovInk
             lock (locker)
             {
                 Data.blocks.Remove(block);
+                OnBlockRemoved?.Invoke(block.Position);
                 isDirty = true;
             }
         }
@@ -203,6 +232,7 @@ namespace MaximovInk
                     return;
 
                 Data.blocks.Remove(block);
+                OnBlockRemoved?.Invoke(block.Position);
                 isDirty = true;
             }
         }
@@ -213,6 +243,7 @@ namespace MaximovInk
             {
                 Destroy(obj.Instance);
                 Data.objects.Remove(obj);
+                OnObjectRemoved?.Invoke(obj.Position);
             }
         }
 
@@ -225,6 +256,7 @@ namespace MaximovInk
                 {
                     Destroy(obj.Instance);
                     Data.objects.Remove(obj);
+                    OnObjectRemoved?.Invoke(position);
                 }
             }
         }
@@ -311,7 +343,10 @@ namespace MaximovInk
                 if (!materialSubMeshes.Contains(matName))
                 {
                     materialSubMeshes.Add(matName);
-                    materials.Add(MaterialDatabase.GetMaterial(matName));
+                    if (CustomMaterial == null)
+                        materials.Add(MaterialDatabase.GetMaterial(matName));
+                    else
+                        materials.Add(CustomMaterial);
                 }
             }
 
@@ -720,6 +755,7 @@ namespace MaximovInk
 
                 if (IsEmpty())
                 {
+                    Building.RemoveLayer(this);
                     Destroy(gameObject);
                     return;
                 }

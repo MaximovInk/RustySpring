@@ -21,6 +21,8 @@ namespace MaximovInk
 
         void SetActivePreview(bool active);
 
+        // ColliderChecker GetPreviewChecker();
+
         void SetPreviewObjectPos(BuildingLayer building, Vector3 pos, Vector3 normal);
 
         void ObjectBehaviourPreview(ObjectBehaviour objectBehaviour, Vector3 pos);
@@ -33,28 +35,32 @@ namespace MaximovInk
     public class ObjPlacing : IPlacingObject
     {
         public GameObject PreviewObject;
-        public ObjectTile Shape;
+        public ObjectTile ObjectTile;
 
         public ObjPlacing(ObjectTile shape)
         {
-            this.Shape = shape;
+            this.ObjectTile = shape;
         }
 
         public void CreatePreview()
         {
-            PreviewObject = Object.Instantiate(Shape.GetGameObject());
-            PreviewObject.SetMaterialRecursively(MaterialDatabase.GetMaterial("preview"));
-            PreviewObject.SetLayerRecursively(LayerMask.NameToLayer("IgnoreR&C"));
+            PreviewObject = Object.Instantiate(ObjectTile.GetGameObject())/*.AddComponent<ColliderChecker>()*/;
+            PreviewObject.gameObject.SetMaterialRecursively(MaterialDatabase.GetMaterial("preview"));
+            PreviewObject.gameObject.SetLayerRecursively(LayerMask.NameToLayer("BuildingChecker"));
         }
+
+        //public ColliderChecker GetPreviewChecker() => PreviewObject;
 
         public void SetActivePreview(bool active)
         {
-            PreviewObject.SetActive(active);
+            PreviewObject.gameObject.SetActive(active);
+            /*if (!active)
+                PreviewObject.ResetCounters();*/
         }
 
         public void DestroyPreview()
         {
-            Object.Destroy(PreviewObject);
+            Object.Destroy(PreviewObject.gameObject);
         }
 
         public void SetPreviewObjectPos(BuildingLayer building, Vector3 pos, Vector3 normal)
@@ -65,17 +71,17 @@ namespace MaximovInk
 
         public void ObjectBehaviourOnPlace(ObjectBehaviour objectBehaviour, Vector3 pos)
         {
-            objectBehaviour.OnObjectPlace(Shape);
+            objectBehaviour.OnObjectPlace(ObjectTile);
         }
 
         public void ObjectBehaviourPreview(ObjectBehaviour objectBehaviour, Vector3 pos)
         {
-            objectBehaviour.OnObjectPreview(PreviewObject);
+            objectBehaviour.OnObjectPreview(PreviewObject.gameObject);
         }
 
         public void OnPlace(BuildingLayer building, Vector3 worldPos, Vector3 normal)
         {
-            building.AddObject(Shape, building.WorldToGrid(worldPos), normal);
+            building.AddObject(ObjectTile, building.WorldToGrid(worldPos), normal);
         }
     }
 
@@ -95,19 +101,21 @@ namespace MaximovInk
             if (PreviewBlock != null)
                 return;
 
-            PreviewBlock = CreateCube();
+            PreviewBlock = CreateCube()/*.AddComponent<ColliderChecker>()*/;
             PreviewBlock.transform.localScale = Vector3.one * BuildingLayer.kBlockSize;
-            PreviewBlock.SetLayerRecursively(LayerMask.NameToLayer("IgnoreR&C"));
+            PreviewBlock.gameObject.SetLayerRecursively(LayerMask.NameToLayer("BuildingChecker"));
         }
+
+        //public ColliderChecker GetPreviewChecker() => PreviewBlock;
 
         public void DestroyPreview()
         {
-            Object.Destroy(PreviewBlock);
+            Object.Destroy(PreviewBlock.gameObject);
         }
 
         public void SetActivePreview(bool active)
         {
-            PreviewBlock.SetActive(active);
+            PreviewBlock.gameObject.SetActive(active);
         }
 
         public void SetPreviewObjectPos(BuildingLayer building, Vector3 pos, Vector3 normal)
@@ -123,12 +131,12 @@ namespace MaximovInk
 
         public void ObjectBehaviourPreview(ObjectBehaviour objectBehaviour, Vector3 pos)
         {
-            objectBehaviour.OnBlockPreview(PreviewBlock);
+            objectBehaviour.OnBlockPreview(PreviewBlock.gameObject);
         }
 
         public void OnPlace(BuildingLayer building, Vector3 worldPos, Vector3 normal)
         {
-            building.AddBlock(building.WorldToGrid(worldPos), tile);
+            building.AddBlock(tile, building.WorldToGrid(worldPos));
         }
 
         private GameObject CreateCube()
@@ -185,6 +193,14 @@ namespace MaximovInk
 
                 var placePoint = hit.point + (hit.normal * BuildingLayer.HalfBlockSize);
 
+                if (hit.collider.CompareTag("ObjectTile"))
+                {
+                    if (Input.GetMouseButtonDown(1))
+                    {
+                        Object.Destroy(hit.collider.gameObject);
+                    }
+                }
+
                 if (objBehaviour != null)
                 {
                     PlacingObject.ObjectBehaviourPreview(objBehaviour, placePoint);
@@ -192,10 +208,6 @@ namespace MaximovInk
                     if (Input.GetMouseButtonDown(0))
                     {
                         PlacingObject.ObjectBehaviourOnPlace(objBehaviour, placePoint);
-                    }
-                    if (Input.GetMouseButtonDown(1))
-                    {
-                        objBehaviour.RemoveObject();
                     }
                 }
                 else
@@ -221,6 +233,60 @@ namespace MaximovInk
             else
             {
                 PlacingObject.SetActivePreview(false);
+            }
+        }
+    }
+
+    public class LayerCombinerTool : ITool
+    {
+        private BuilderController player;
+
+        private BuildingLayer begin;
+        private BuildingLayer end;
+
+        public void OnDeselect()
+        {
+        }
+
+        public void OnSelect(BuilderController player)
+        {
+            this.player = player;
+        }
+
+        public void Update()
+        {
+            LayerMask BuildingMask = (1 << LayerMask.NameToLayer("Default"));
+
+            var cam = player.Camera;
+
+            if (Input.GetMouseButtonDown(0))
+            {
+                if (Physics.Raycast(new Ray(cam.transform.position, cam.transform.forward), out RaycastHit hit, Mathf.Infinity, BuildingMask))
+                {
+                    var buildingLayer = hit.collider.GetComponentInParent<BuildingLayer>();
+                    if (begin == null)
+                    {
+                        begin = buildingLayer;
+                    }
+                }
+            }
+
+            if (Input.GetMouseButtonUp(0))
+            {
+                if (begin != null)
+                {
+                    if (Physics.Raycast(new Ray(cam.transform.position, cam.transform.forward), out RaycastHit hit, Mathf.Infinity, BuildingMask))
+                    {
+                        var buildingLayer = hit.collider.GetComponentInParent<BuildingLayer>();
+                        if (buildingLayer != null)
+                        {
+                            end = buildingLayer;
+                            buildingLayer.Building.CombineLayers(begin, end);
+                        }
+                    }
+                    begin = null;
+                    end = null;
+                }
             }
         }
     }

@@ -65,7 +65,8 @@ namespace MaximovInk
             if (!active)
                 return;
 
-            var depth = Input.GetKey(KeyCode.LeftShift) ? -1 : Input.GetKey(KeyCode.Space) ? 1 : 0;
+            //var depth = Input.GetKey(KeyCode.LeftShift) ? -1 : Input.GetKey(KeyCode.Space) ? 1 : 0;
+            var depth = 0f;
 
             movementSpeed = Mathf.Max(movementSpeed += Input.GetAxis("Mouse ScrollWheel"), 0.0f);
             transform.position += (transform.right * Input.GetAxis("Horizontal") + transform.forward * Input.GetAxis("Vertical") + transform.up * depth) * movementSpeed * Time.deltaTime;
@@ -79,9 +80,12 @@ namespace MaximovInk
                 player.Freeze = false;
                 player.Camera.enabled = true;
                 SetActive(false);
+                CurrentTool = null;
 
                 GameManager.instance.GameUI.SetActive(true);
                 GameManager.instance.EditorUI.SetActive(false);
+                EditorManager.instance.SetLayersMode(false);
+                EditorManager.instance.CurrentWorkbench = null;
             }
 
             if (Input.GetKeyDown(KeyCode.F))
@@ -104,6 +108,25 @@ namespace MaximovInk
             if (Input.GetKeyDown(KeyCode.Alpha3))
             {
                 SelectObject("axle");
+            }
+
+            if (Input.GetKeyDown(KeyCode.Alpha4))
+            {
+                SelectObject("wheel");
+            }
+
+            if (Input.GetKeyDown(KeyCode.Alpha5))
+            {
+                CurrentTool?.OnDeselect();
+
+                CurrentTool = new LayerCombinerTool();
+
+                CurrentTool.OnSelect(this);
+            }
+
+            if (Input.GetKeyDown(KeyCode.F3))
+            {
+                EditorManager.instance.ToggleLayersMode();
             }
         }
     }

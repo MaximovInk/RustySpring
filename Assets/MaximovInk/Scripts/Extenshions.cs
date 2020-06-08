@@ -34,6 +34,16 @@ namespace MaximovInk
             }
         }
 
+        public static void SetTagRecursively(this GameObject obj, string tag)
+        {
+            obj.tag = tag;
+
+            foreach (Transform child in obj.transform)
+            {
+                child.gameObject.SetTagRecursively(tag);
+            }
+        }
+
         public static void SetMaterialRecursively(this GameObject obj, Material mat)
         {
             var meshRenderers = obj.GetComponentsInChildren<MeshRenderer>();
