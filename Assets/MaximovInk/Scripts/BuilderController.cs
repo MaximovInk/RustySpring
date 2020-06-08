@@ -83,6 +83,16 @@ namespace MaximovInk
                 GameManager.instance.GameUI.SetActive(true);
                 GameManager.instance.EditorUI.SetActive(false);
             }
+
+            if (Input.GetKeyDown(KeyCode.F))
+            {
+                workbench.Building.Freeze = !workbench.Building.Freeze;
+                if (workbench.Building.Freeze)
+                {
+                    workbench.Building.transform.localPosition = new Vector3(0, 1, 0);
+                }
+            }
+
             if (Input.GetKeyDown(KeyCode.Alpha1))
             {
                 SelectBlock("wood");

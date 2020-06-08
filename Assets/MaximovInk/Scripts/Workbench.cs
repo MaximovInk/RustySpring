@@ -6,7 +6,7 @@ namespace MaximovInk
     {
         public BuilderController BuilderController;
 
-        private Building building;
+        public Building Building;
 
         private void OnTriggerEnter(Collider other)
         {
@@ -24,16 +24,16 @@ namespace MaximovInk
 
         private void Init()
         {
-            if (building != null)
+            if (Building != null)
                 return;
 
-            building = new GameObject().AddComponent<Building>();
-            building.transform.SetParent(transform);
-            building.transform.localPosition = new Vector3(0, 1, 0);
-            building.transform.localRotation = Quaternion.identity;
-            var layer0 = building.AddNewLayer();
+            Building = new GameObject().AddComponent<Building>();
+            Building.transform.SetParent(transform);
+            Building.transform.localPosition = new Vector3(0, 1, 0);
+            Building.transform.localRotation = Quaternion.identity;
+            var layer0 = Building.AddNewLayer();
             layer0.AddBlock(Vector3Int.zero, TileDatabase.GetBlock("wood"));
-            building.Freeze = true;
+            Building.Freeze = true;
         }
     }
 }

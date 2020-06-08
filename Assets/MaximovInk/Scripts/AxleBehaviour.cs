@@ -5,7 +5,9 @@ namespace MaximovInk
 {
     public class AxleBehaviour : ObjectBehaviour
     {
-        private HingeJoint hJoint;
+        //private HingeJoint hJoint;
+        private ConfigurableJoint cJoint;
+
         private BuildingLayer connectedTo;
 
         private void Awake()
@@ -41,12 +43,23 @@ namespace MaximovInk
 
         private void ConfigurateJoint()
         {
-            hJoint = buildingLayer.gameObject.AddComponent<HingeJoint>();
-            hJoint.autoConfigureConnectedAnchor = false;
-            connectedTo.ConnectJointToThis(hJoint);
-            hJoint.anchor = transform.localPosition;
-            hJoint.axis = buildingLayer.transform.InverseTransformDirection(transform.TransformDirection(Vector3.up));
-            hJoint.connectedAnchor = Vector3.one * BuildingLayer.HalfBlockSize;
+            //hJoint = buildingLayer.gameObject.AddComponent<HingeJoint>();
+            cJoint = buildingLayer.gameObject.AddComponent<ConfigurableJoint>();
+            //hJoint.autoConfigureConnectedAnchor = false;
+            //connectedTo.ConnectJointToThis(hJoint);
+            connectedTo.ConnectJointToThis(cJoint);
+            //hJoint.anchor = buildingLayer.GridToLocal(data.Position);
+            cJoint.anchor = buildingLayer.GridToLocal(data.Position);
+            //hJoint.axis = buildingLayer.transform.InverseTransformDirection(transform.up);
+            cJoint.axis = buildingLayer.transform.InverseTransformDirection(transform.up);
+            // hJoint.connectedAnchor = Vector3.one * BuildingLayer.HalfBlockSize;
+            cJoint.angularXMotion = ConfigurableJointMotion.Free;
+            cJoint.angularYMotion = ConfigurableJointMotion.Locked;
+            cJoint.angularZMotion = ConfigurableJointMotion.Locked;
+
+            cJoint.xMotion = ConfigurableJointMotion.Locked;
+            cJoint.yMotion = ConfigurableJointMotion.Locked;
+            cJoint.zMotion = ConfigurableJointMotion.Locked;
         }
 
         public override void OnDeserialize()
