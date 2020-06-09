@@ -14,6 +14,7 @@ namespace MaximovInk
         public float PlayerHeight { get; set; } = 1.1f;
         public float JumpForce { get; set; } = 8f;
         public LayerMask GroundMask { get; set; }
+        public LayerMask InteractMask { get; set; }
 
         public Camera Camera { get; private set; }
         public Rigidbody Rigidbody { get; private set; }
@@ -29,8 +30,8 @@ namespace MaximovInk
             Camera = GetComponentInChildren<Camera>();
             Rigidbody = GetComponent<Rigidbody>();
 
-            GroundMask = ~(1 << LayerMask.NameToLayer("Entity"));
-
+            GroundMask = ~((1 << (LayerMask.NameToLayer("Entity"))) | (1 << LayerMask.NameToLayer("Connections")));
+            InteractMask = ~((1 << (LayerMask.NameToLayer("Entity"))) | (1 << LayerMask.NameToLayer("Connections")));
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;
         }
@@ -54,6 +55,19 @@ namespace MaximovInk
                 Freeze = !Freeze;
                 Cursor.lockState = Freeze ? CursorLockMode.None : CursorLockMode.Locked;
                 Cursor.visible = Freeze;
+            }
+
+            if (Input.GetKeyDown(KeyCode.E))
+            {
+                if (Physics.Raycast(new Ray(Camera.transform.position, Camera.transform.forward), out RaycastHit hit, Mathf.Infinity))
+                {
+                    var interactable = hit.collider.GetComponent<IInteractable>();
+
+                    if (interactable != null)
+                    {
+                        interactable.Interact();
+                    }
+                }
             }
         }
 

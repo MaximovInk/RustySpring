@@ -102,13 +102,16 @@ namespace MaximovInk
                 instance.transform.up = normal;
                 instance.SetTagRecursively("ObjectTile");
 
-                var obj = new ObjectTileData() { Position = position, Name = objectTile.Name, Normal = normal, parameters = parameters };
+                var obj = new ObjectTileData() { Instance = instance, Position = position, Name = objectTile.Name, Normal = normal, parameters = parameters };
 
                 Data.objects.Add(obj);
 
                 var behaviour = instance.GetComponent<ObjectBehaviour>();
 
-                behaviour?.OnInstantiate(this, obj);
+                if (behaviour != null)
+                {
+                    behaviour.OnInstantiate(this, obj);
+                }
 
                 OnObjectPlaced?.Invoke(position);
 
@@ -185,19 +188,26 @@ namespace MaximovInk
 
         public void OnSerialize()
         {
-            var objs = GetComponentsInChildren<ObjectBehaviour>();
-            for (int i = 0; i < objs.Length; i++)
+            lock (locker)
             {
-                objs[i].OnSerialize();
+                var objs = GetComponentsInChildren<ObjectBehaviour>();
+                for (int i = 0; i < objs.Length; i++)
+                {
+                    objs[i].OnSerialize();
+                }
             }
         }
 
         public void OnDeserialize()
         {
-            var objs = GetComponentsInChildren<ObjectBehaviour>();
-            for (int i = 0; i < objs.Length; i++)
+            lock (locker)
             {
-                objs[i].OnDeserialize();
+                var objs = GetComponentsInChildren<ObjectBehaviour>();
+
+                for (int i = 0; i < objs.Length; i++)
+                {
+                    objs[i].OnDeserialize();
+                }
             }
         }
 
@@ -344,7 +354,7 @@ namespace MaximovInk
                 {
                     materialSubMeshes.Add(matName);
                     if (CustomMaterial == null)
-                        materials.Add(MaterialDatabase.GetMaterial(matName));
+                        materials.Add(MaterialsDatabase.GetMaterial(matName));
                     else
                         materials.Add(CustomMaterial);
                 }

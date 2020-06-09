@@ -19,7 +19,7 @@ TagManager:
   - Entity
   - Ground
   - IgnoreR&C
-  - BuildingChecker
+  - Connections
   - 
   - 
   - 
