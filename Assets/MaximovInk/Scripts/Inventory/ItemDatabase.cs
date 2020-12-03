@@ -1,30 +1,60 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
+using UnityEngine;
 
 namespace MaximovInk
 {
     public static class ItemDatabase
     {
-        public static List<StaticItemData> items = new List<StaticItemData>();
+        private static readonly Dictionary<string, Item> items = new Dictionary<string, Item>();
+
+        public static void RegisterItem(Item item, bool replace = false)
+        {
+            if (item == null)
+            {
+                throw new System.Exception("Cannot register item , because its null");
+            }
+
+            if (items.ContainsKey(item.Name))
+            {
+                if (!replace)
+                {
+                    Debug.LogError("Tile is already registered in database:" + item.Name);
+                }
+                else
+                {
+                    items[item.Name] = item;
+                }
+
+                return;
+            }
+
+            items.Add(item.Name, item);
+        }
+
+        public static List<string> GetAllItems()
+        {
+            return items.Keys.ToList();
+        }
+
+        public static Item GetBlock(string name)
+        {
+            return items[name];
+        }
 
         static ItemDatabase()
         {
-            var lift = new StaticItemData()
+            RegisterItem(new Item()
             {
-                Name = "Lift",
-                Key = "Lift",
-                Description = "Freeze your building on lift",
-                MaxStack = 1,
-                CanDrop = false
-            };
+                Name = "Gun",
+                Description = "No Desc",
+                MaxStack = 256,
+                CanDrop = true
+            });
 
-            items.Add(lift);
-
-            lift.OnSelectSlot += (slot) => { };
-
-            items.Add(new StaticItemData()
+            RegisterItem(new Item()
             {
                 Name = "Wood block",
-                Key = "Default:Wood_block",
                 Description = "Not bad",
                 MaxStack = 256,
                 CanDrop = true

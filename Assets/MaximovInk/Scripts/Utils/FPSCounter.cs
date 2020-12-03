@@ -1,11 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Text;
+using TMPro;
 using UnityEngine;
 using UnityEngine.Profiling;
-using UnityEngine.UI;
 
 namespace MaximovInk
 {
@@ -13,7 +9,7 @@ namespace MaximovInk
     {
         public Color tx_Color = Color.white;
         private StringBuilder tx;
-        public Text text;
+        public TextMeshProUGUI text;
 
         private float updateInterval = 0.2f;
         private float lastInterval;

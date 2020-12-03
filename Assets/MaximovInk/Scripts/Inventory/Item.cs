@@ -5,14 +5,13 @@ using UnityEngine;
 
 namespace MaximovInk
 {
-    public class StaticItemData
+    public class Item
     {
         public string Name { get; set; }
         public Texture2D Icon { get; set; }
         public Texture2D DroppedIcon { get; set; }
         public string Description { get; set; }
         public int MaxStack { get; set; }
-        public string Key { get; set; }
 
         public bool CanDrop { get; set; } = true;
 
@@ -21,6 +20,7 @@ namespace MaximovInk
         public List<ItemFunction> functions = new List<ItemFunction>();
 
         public event Action<Slot> OnSelectSlot;
+
         public event Action<Slot> OnDeselectSlot;
 
         public ItemProperty GetProperty(string key)
@@ -36,7 +36,7 @@ namespace MaximovInk
             properties.Add(property);
         }
 
-        public StaticItemData(params ItemProperty[] properties)
+        public Item(params ItemProperty[] properties)
         {
             this.properties = properties;
         }
@@ -56,15 +56,10 @@ namespace MaximovInk
         public float AsFloat() => (float)Value;
     }
 
-    public class Item
-    {
-        public string key;
-    }
-
     public struct ItemFunction
     {
         public string Name { get; set; }
-        public Action<Item> Action { get; set; }
+        public Action<ItemData> Action { get; set; }
 
         public override bool Equals(object obj)
         {

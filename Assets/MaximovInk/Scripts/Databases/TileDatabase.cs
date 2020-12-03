@@ -62,6 +62,11 @@ namespace MaximovInk
             return blocks.Keys.ToList();
         }
 
+        public static List<string> GetAllObjects()
+        {
+            return objects.Keys.ToList();
+        }
+
         public static BlockTile GetBlock(string name)
         {
             return blocks[name];
