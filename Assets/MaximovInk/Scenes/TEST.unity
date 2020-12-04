@@ -1333,7 +1333,7 @@ PrefabInstance:
     - target: {fileID: 5011394524210588221, guid: 084e84ea206d4ec4bbe609688419d9ed,
         type: 3}
       propertyPath: m_SizeDelta.x
-      value: 0
+      value: 48.82556
       objectReference: {fileID: 0}
     - target: {fileID: 5011394524467531136, guid: 084e84ea206d4ec4bbe609688419d9ed,
         type: 3}
@@ -1344,6 +1344,11 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Name
       value: MWindow
+      objectReference: {fileID: 0}
+    - target: {fileID: 5011394525164376744, guid: 084e84ea206d4ec4bbe609688419d9ed,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5011394525164376745, guid: 084e84ea206d4ec4bbe609688419d9ed,
         type: 3}
@@ -7115,7 +7120,7 @@ RectTransform:
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 0, y: 0}
+  m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 20, y: 20}
   m_Pivot: {x: 0.5, y: 0.5}
@@ -7508,7 +7513,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0.5}
   m_AnchorMax: {x: 1, y: 0.5}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 0, y: 0}
+  m_SizeDelta: {x: 0, y: 10}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &3839322448322390514
 MonoBehaviour:
@@ -7865,7 +7870,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!222 &3839322448911382780
 CanvasRenderer:
   m_ObjectHideFlags: 0

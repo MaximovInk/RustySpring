@@ -9,9 +9,19 @@ namespace MaximovInk
 
         public string Type;
 
+        private MeshRenderer meshRenderer;
+
         private void Awake()
         {
-            EditorManager.instance.OnActiveChanged += (val) => GetComponent<MeshRenderer>().enabled = val;
+            meshRenderer = GetComponent<MeshRenderer>();
+
+            if (meshRenderer == null)
+            {
+                Destroy(gameObject);
+                return;
+            }
+
+            EditorManager.instance.OnActiveChanged += (val) => meshRenderer.enabled = val;
         }
 
         public virtual void InitGraphic()
