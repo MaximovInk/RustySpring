@@ -1,6 +1,6 @@
-﻿namespace MaximovInk
+﻿using UnityEngine;
+
+public class Hotbar : Inventory
 {
-    public class Hotbar : SlotsContainer
-    {
-    }
+
 }

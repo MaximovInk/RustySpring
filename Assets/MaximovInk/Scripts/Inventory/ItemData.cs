@@ -1,7 +1,6 @@
-﻿namespace MaximovInk
+﻿public class ItemData
 {
-    public class ItemData
-    {
-        public string ID;
-    }
+    public string ID;
+    public uint Count;
 }
+
